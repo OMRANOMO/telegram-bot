@@ -81,7 +81,7 @@ def main():
         webhook_url=WEBHOOK_URL
     )
 
-     import requests
+import requests
 
 def set_webhook():
     url = f"https://api.telegram.org/bot{TOKEN}/setWebhook"
@@ -96,5 +96,6 @@ set_webhook()
 
 if __name__ == "__main__":
     main()
+
 
 
