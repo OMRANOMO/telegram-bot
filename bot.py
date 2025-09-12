@@ -14,14 +14,14 @@ file_ids = {}
 
 # مسارات ملفات PDF (يفضل لاحقًا رفعها إلى GitHub أو تخزينها في مكان عام)
 pdf_paths = {
-    "📚 الدورات": "D:/boot/pdf/file.pdf",
-    "📄 أوراق عمل": "D:/boot/pdf/file.pdf",
-    "الوحدة 1": "D:/boot/pdf/file.pdf",
-    "الوحدة 2": "D:/boot/pdf/file.pdf",
-    "الوحدة 3": "D:/boot/pdf/file.pdf",
-    "الوحدة 4": "D:/boot/pdf/file.pdf",
-    "الوحدة 5": "D:/boot/pdf/file.pdf",
-    "الوحدة 6": "D:/boot/pdf/file.pdf"
+    "📚 الدورات": "pdf/file.pdf",
+    "📄 أوراق عمل": "pdf/file.pdf",
+    "الوحدة 1": "pdf/file.pdf",
+    "الوحدة 2": "pdf/file.pdf",
+    "الوحدة 3": "pdf/file.pdf",
+    "الوحدة 4": "pdf/file.pdf",
+    "الوحدة 5": "pdf/file.pdf",
+    "الوحدة 6": "pdf/file.pdf"
 }
 
 # دالة بدء البوت
@@ -81,5 +81,19 @@ def main():
         webhook_url=WEBHOOK_URL
     )
 
+     import requests
+
+def set_webhook():
+    url = f"https://api.telegram.org/bot{TOKEN}/setWebhook"
+    data = {"url": WEBHOOK_URL}
+    response = requests.post(url, data=data)
+    print("🔗 Webhook status:", response.text)
+
+set_webhook()
+
+
+
+
 if __name__ == "__main__":
     main()
+
