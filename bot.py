@@ -1,18 +1,18 @@
 import os
-import json
 import threading
+import requests
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from keep_alive import run  # خادم Flask الوهمي
 
-# مفتاح البوت و رابط Webhook
+# تحميل المتغيرات البيئية
 TOKEN = os.getenv("TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
 # قاموس لحفظ file_id لكل ملف
 file_ids = {}
 
-# مسارات ملفات PDF (يفضل لاحقًا رفعها إلى GitHub أو تخزينها في مكان عام)
+# مسارات ملفات PDF
 pdf_paths = {
     "📚 الدورات": "file.pdf",
     "📄 أوراق عمل": "file.pdf",
@@ -66,9 +66,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("يرجى اختيار زر من الكيبورد.")
 
-# تشغيل البوت باستخدام Webhook
+# دالة تسجيل Webhook لدى Telegram
+def set_webhook():
+    url = f"https://api.telegram.org/bot{TOKEN}/setWebhook"
+    data = {"url": WEBHOOK_URL}
+    response = requests.post(url, data=data)
+    print("🔗 Webhook status:", response.text)
+
+# دالة تشغيل البوت
 def main():
-    threading.Thread(target=run).start()  # تشغيل خادم Flask في الخلفية
+    threading.Thread(target=run).start()  # تشغيل Flask في الخلفية
 
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
@@ -76,30 +83,14 @@ def main():
 
     print("✅ البوت يعمل الآن عبر Webhook...")
 
+    set_webhook()  # ← تسجيل Webhook قبل التشغيل
+
     app.run_webhook(
-    listen="0.0.0.0",
-    port=int(os.environ.get("PORT", 10000)),  # استخدام المنفذ الديناميكي
-    webhook_url=WEBHOOK_URL
-)
+        listen="0.0.0.0",
+        port=int(os.environ.get("PORT", 10000)),
+        webhook_url=WEBHOOK_URL
+    )
 
-
-import requests
-
-def set_webhook():
-    url = f"https://api.telegram.org/bot{TOKEN}/setWebhook"
-    data = {"url": WEBHOOK_URL}
-    response = requests.post(url, data=data)
-    print("🔗 Webhook status:", response.text)
-
-set_webhook()
-
-
-
-
+# نقطة البداية
 if __name__ == "__main__":
     main()
-
-
-
-
-
