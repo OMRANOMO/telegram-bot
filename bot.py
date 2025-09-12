@@ -76,7 +76,7 @@ def main():
 
     print("✅ البوت يعمل الآن عبر Webhook...")
 
-app.run_webhook(
+    app.run_webhook(
     listen="0.0.0.0",
     port=int(os.environ.get("PORT", 10000)),  # استخدام المنفذ الديناميكي
     webhook_url=WEBHOOK_URL
@@ -98,6 +98,7 @@ set_webhook()
 
 if __name__ == "__main__":
     main()
+
 
 
 
