@@ -3,7 +3,7 @@ import threading
 import requests
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
-from keep_alive import run  # خادم Flask الوهمي
+# from keep_alive import run  # خادم Flask الوهمي
 
 # تحميل المتغيرات البيئية
 TOKEN = os.getenv("TOKEN")
@@ -94,4 +94,5 @@ def main():
 # نقطة البداية
 if __name__ == "__main__":
     main()
+
 
