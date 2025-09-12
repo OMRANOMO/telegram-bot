@@ -14,14 +14,14 @@ file_ids = {}
 
 # مسارات ملفات PDF (يفضل لاحقًا رفعها إلى GitHub أو تخزينها في مكان عام)
 pdf_paths = {
-    "📚 الدورات": "pdf/file.pdf",
-    "📄 أوراق عمل": "pdf/file.pdf",
-    "الوحدة 1": "pdf/file.pdf",
-    "الوحدة 2": "pdf/file.pdf",
-    "الوحدة 3": "pdf/file.pdf",
-    "الوحدة 4": "pdf/file.pdf",
-    "الوحدة 5": "pdf/file.pdf",
-    "الوحدة 6": "pdf/file.pdf"
+    "📚 الدورات": "file.pdf",
+    "📄 أوراق عمل": "file.pdf",
+    "الوحدة 1": "file.pdf",
+    "الوحدة 2": "file.pdf",
+    "الوحدة 3": "file.pdf",
+    "الوحدة 4": "file.pdf",
+    "الوحدة 5": "file.pdf",
+    "الوحدة 6": "file.pdf"
 }
 
 # دالة بدء البوت
@@ -96,4 +96,5 @@ set_webhook()
 
 if __name__ == "__main__":
     main()
+
 
