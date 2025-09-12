@@ -75,11 +75,13 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     print("✅ البوت يعمل الآن عبر Webhook...")
-    app.run_webhook(
-        listen="0.0.0.0",
-        port=8080,
-        webhook_url=WEBHOOK_URL
-    )
+
+app.run_webhook(
+    listen="0.0.0.0",
+    port=int(os.environ.get("PORT", 10000)),  # استخدام المنفذ الديناميكي
+    webhook_url=WEBHOOK_URL
+)
+
 
 import requests
 
@@ -96,6 +98,7 @@ set_webhook()
 
 if __name__ == "__main__":
     main()
+
 
 
 
