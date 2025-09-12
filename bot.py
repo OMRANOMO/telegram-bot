@@ -75,7 +75,7 @@ def set_webhook():
 
 # دالة تشغيل البوت
 def main():
-    threading.Thread(target=run).start()  # تشغيل Flask في الخلفية
+ #   threading.Thread(target=run).start()  # تشغيل Flask في الخلفية
 
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
@@ -94,3 +94,4 @@ def main():
 # نقطة البداية
 if __name__ == "__main__":
     main()
+
