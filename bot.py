@@ -1,12 +1,17 @@
 import os
 import requests
+import asyncio
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+import uvicorn
 
 TOKEN = os.getenv("TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
 file_ids = {}
+app = FastAPI()  # FastAPI instance
 
 # دالة عرض الكيبورد حسب الحالة
 async def show_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE, state: str):
@@ -131,19 +136,25 @@ def set_webhook():
     response = requests.post(url, data=data)
     print("🔗 Webhook status:", response.text)
 
-def main():
-    app = ApplicationBuilder().token(TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+@app.get("/ping")
+def ping():
+    return JSONResponse(content={"message": "pong"}, status_code=200)
+
+def run_bot():
+    telegram_app = ApplicationBuilder().token(TOKEN).build()
+    telegram_app.add_handler(CommandHandler("start", start))
+    telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     print("✅ البوت يعمل الآن عبر Webhook...")
     set_webhook()
 
-    app.run_webhook(
+    telegram_app.run_webhook(
         listen="0.0.0.0",
         port=int(os.environ.get("PORT", 10000)),
         webhook_url=WEBHOOK_URL
     )
 
 if __name__ == "__main__":
-    main()
+    loop = asyncio.get_event_loop()
+    loop.create_task(asyncio.to_thread(run_bot))
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
