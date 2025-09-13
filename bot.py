@@ -1,64 +1,79 @@
 import os
-import threading
 import requests
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
-# from keep_alive import run  # خادم Flask الوهمي
 
-# تحميل المتغيرات البيئية
 TOKEN = os.getenv("TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
-# قاموس لحفظ file_id لكل ملف
 file_ids = {}
 
-# مسارات ملفات PDF
-pdf_paths = {
-    "📚 الدورات": "file.pdf",
-    "📄 أوراق عمل": "file.pdf",
-    "الوحدة 1": "file.pdf",
-    "الوحدة 2": "file.pdf",
-    "الوحدة 3": "file.pdf",
-    "الوحدة 4": "file.pdf",
-    "الوحدة 5": "file.pdf",
-    "الوحدة 6": "file.pdf"
-}
-
-# دالة بدء البوت
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
-        [KeyboardButton("📚 الدورات")],
-        [KeyboardButton("📄 أوراق عمل")],
-        [KeyboardButton("📘 شرح المنهاج")]
+        [KeyboardButton("📐 قسم الرياضيات")],
+        [KeyboardButton("🧪 قسم الكيمياء")]
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-    await update.message.reply_text("اختر أحد الخيارات التالية:", reply_markup=reply_markup)
+    await update.message.reply_text("اختر القسم:", reply_markup=reply_markup)
 
-# دالة التعامل مع الرسائل
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
 
-    if text in pdf_paths:
-        if text in file_ids:
-            await update.message.reply_document(document=file_ids[text])
-        else:
-            try:
-                with open(pdf_paths[text], "rb") as f:
-                    msg = await update.message.reply_document(document=f)
-                    file_ids[text] = msg.document.file_id
-            except Exception as e:
-                await update.message.reply_text("حدث خطأ أثناء إرسال الملف.")
-                print(f"❌ خطأ: {e}")
-
-    elif text == "📘 شرح المنهاج":
+    if text in file_ids:
+        await update.message.reply_document(document=file_ids[text])
+    elif text == "📐 قسم الرياضيات":
         keyboard = [
-            [KeyboardButton("الوحدة 1"), KeyboardButton("الوحدة 2")],
-            [KeyboardButton("الوحدة 3"), KeyboardButton("الوحدة 4")],
-            [KeyboardButton("الوحدة 5"), KeyboardButton("الوحدة 6")],
+            [KeyboardButton("📘 بكالوريا"), KeyboardButton("📗 تاسع")],
+            [KeyboardButton("📙 تأهيلي")],
             [KeyboardButton("⬅️ رجوع")]
         ]
         reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-        await update.message.reply_text("اختر الوحدة:", reply_markup=reply_markup)
+        await update.message.reply_text("اختر المرحلة:", reply_markup=reply_markup)
+
+    elif text in ["📘 بكالوريا", "📗 تاسع"]:
+        keyboard = [
+            [KeyboardButton("📚 كتب"), KeyboardButton("📘 شرح المنهاج")],
+            [KeyboardButton("📄 أوراق عمل"), KeyboardButton("📝 أسئلة دورات")],
+            [KeyboardButton("⬅️ رجوع")]
+        ]
+        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+        await update.message.reply_text("اختر نوع المحتوى:", reply_markup=reply_markup)
+
+    elif text == "📙 تأهيلي":
+        keyboard = [
+            [KeyboardButton("📕 إعدادي"), KeyboardButton("📒 ثانوي")],
+            [KeyboardButton("⬅️ رجوع")]
+        ]
+        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+        await update.message.reply_text("اختر المستوى:", reply_markup=reply_markup)
+
+    elif text == "📕 إعدادي":
+        keyboard = [
+            [KeyboardButton("🧮 سابع"), KeyboardButton("📊 ثامن")],
+            [KeyboardButton("⬅️ رجوع")]
+        ]
+        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+        await update.message.reply_text("اختر الصف:", reply_markup=reply_markup)
+
+    elif text == "📒 ثانوي":
+        keyboard = [
+            [KeyboardButton("📈 عاشر"), KeyboardButton("📉 حادي عشر")],
+            [KeyboardButton("⬅️ رجوع")]
+        ]
+        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+        await update.message.reply_text("اختر الصف:", reply_markup=reply_markup)
+
+    elif text in ["🧮 سابع", "📊 ثامن", "📈 عاشر", "📉 حادي عشر"]:
+        keyboard = [
+            [KeyboardButton("📚 كتب"), KeyboardButton("📘 شرح المنهاج")],
+            [KeyboardButton("📄 أوراق عمل")],
+            [KeyboardButton("⬅️ رجوع")]
+        ]
+        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+        await update.message.reply_text("اختر نوع المحتوى:", reply_markup=reply_markup)
+
+    elif text == "🧪 قسم الكيمياء":
+        await update.message.reply_text("📢 قسم الكيمياء قيد التطوير حالياً.")
 
     elif text == "⬅️ رجوع":
         await start(update, context)
@@ -66,24 +81,19 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("يرجى اختيار زر من الكيبورد.")
 
-# دالة تسجيل Webhook لدى Telegram
 def set_webhook():
     url = f"https://api.telegram.org/bot{TOKEN}/setWebhook"
     data = {"url": WEBHOOK_URL}
     response = requests.post(url, data=data)
     print("🔗 Webhook status:", response.text)
 
-# دالة تشغيل البوت
 def main():
- #   threading.Thread(target=run).start()  # تشغيل Flask في الخلفية
-
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     print("✅ البوت يعمل الآن عبر Webhook...")
-
-    set_webhook()  # ← تسجيل Webhook قبل التشغيل
+    set_webhook()
 
     app.run_webhook(
         listen="0.0.0.0",
@@ -91,8 +101,5 @@ def main():
         webhook_url=WEBHOOK_URL
     )
 
-# نقطة البداية
 if __name__ == "__main__":
     main()
-
-
