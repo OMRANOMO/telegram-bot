@@ -8,75 +8,119 @@ WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
 file_ids = {}
 
+# دالة عرض الكيبورد حسب الحالة
+async def show_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE, state: str):
+    context.user_data["last_state"] = state
+
+    if state == "start":
+        keyboard = [
+            [KeyboardButton("📐 قسم الرياضيات")],
+            [KeyboardButton("🧪 قسم الكيمياء")]
+        ]
+        await update.message.reply_text("اختر القسم:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+
+    elif state == "math":
+        keyboard = [
+            [KeyboardButton("📘 بكالوريا"), KeyboardButton("📗 تاسع")],
+            [KeyboardButton("📙 تأهيلي")],
+            [KeyboardButton("⬅️ رجوع")]
+        ]
+        await update.message.reply_text("اختر المرحلة:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+
+    elif state in ["baccalaureate", "ninth"]:
+        keyboard = [
+            [KeyboardButton("📚 كتب"), KeyboardButton("📘 شرح المنهاج")],
+            [KeyboardButton("📄 أوراق عمل"), KeyboardButton("📝 أسئلة دورات")],
+            [KeyboardButton("⬅️ رجوع")]
+        ]
+        await update.message.reply_text("اختر نوع المحتوى:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+
+    elif state == "qualifying":
+        keyboard = [
+            [KeyboardButton("📕 إعدادي"), KeyboardButton("📒 ثانوي")],
+            [KeyboardButton("⬅️ رجوع")]
+        ]
+        await update.message.reply_text("اختر المستوى:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+
+    elif state == "preparatory":
+        keyboard = [
+            [KeyboardButton("🧮 سابع"), KeyboardButton("📊 ثامن")],
+            [KeyboardButton("⬅️ رجوع")]
+        ]
+        await update.message.reply_text("اختر الصف:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+
+    elif state == "secondary":
+        keyboard = [
+            [KeyboardButton("📈 عاشر"), KeyboardButton("📉 حادي عشر")],
+            [KeyboardButton("⬅️ رجوع")]
+        ]
+        await update.message.reply_text("اختر الصف:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+
+    elif state in ["seventh", "eighth", "tenth", "eleventh"]:
+        keyboard = [
+            [KeyboardButton("📚 كتب"), KeyboardButton("📘 شرح المنهاج")],
+            [KeyboardButton("📄 أوراق عمل")],
+            [KeyboardButton("⬅️ رجوع")]
+        ]
+        await update.message.reply_text("اختر نوع المحتوى:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [KeyboardButton("📐 قسم الرياضيات")],
-        [KeyboardButton("🧪 قسم الكيمياء")]
-    ]
-    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-    await update.message.reply_text("اختر القسم:", reply_markup=reply_markup)
+    await show_keyboard(update, context, "start")
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
 
     if text in file_ids:
         await update.message.reply_document(document=file_ids[text])
-    elif text == "📐 قسم الرياضيات":
-        keyboard = [
-            [KeyboardButton("📘 بكالوريا"), KeyboardButton("📗 تاسع")],
-            [KeyboardButton("📙 تأهيلي")],
-            [KeyboardButton("⬅️ رجوع")]
-        ]
-        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-        await update.message.reply_text("اختر المرحلة:", reply_markup=reply_markup)
 
-    elif text in ["📘 بكالوريا", "📗 تاسع"]:
-        keyboard = [
-            [KeyboardButton("📚 كتب"), KeyboardButton("📘 شرح المنهاج")],
-            [KeyboardButton("📄 أوراق عمل"), KeyboardButton("📝 أسئلة دورات")],
-            [KeyboardButton("⬅️ رجوع")]
-        ]
-        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-        await update.message.reply_text("اختر نوع المحتوى:", reply_markup=reply_markup)
+    elif text == "📐 قسم الرياضيات":
+        await show_keyboard(update, context, "math")
+
+    elif text == "📘 بكالوريا":
+        await show_keyboard(update, context, "baccalaureate")
+
+    elif text == "📗 تاسع":
+        await show_keyboard(update, context, "ninth")
 
     elif text == "📙 تأهيلي":
-        keyboard = [
-            [KeyboardButton("📕 إعدادي"), KeyboardButton("📒 ثانوي")],
-            [KeyboardButton("⬅️ رجوع")]
-        ]
-        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-        await update.message.reply_text("اختر المستوى:", reply_markup=reply_markup)
+        await show_keyboard(update, context, "qualifying")
 
     elif text == "📕 إعدادي":
-        keyboard = [
-            [KeyboardButton("🧮 سابع"), KeyboardButton("📊 ثامن")],
-            [KeyboardButton("⬅️ رجوع")]
-        ]
-        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-        await update.message.reply_text("اختر الصف:", reply_markup=reply_markup)
+        await show_keyboard(update, context, "preparatory")
 
     elif text == "📒 ثانوي":
-        keyboard = [
-            [KeyboardButton("📈 عاشر"), KeyboardButton("📉 حادي عشر")],
-            [KeyboardButton("⬅️ رجوع")]
-        ]
-        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-        await update.message.reply_text("اختر الصف:", reply_markup=reply_markup)
+        await show_keyboard(update, context, "secondary")
 
-    elif text in ["🧮 سابع", "📊 ثامن", "📈 عاشر", "📉 حادي عشر"]:
-        keyboard = [
-            [KeyboardButton("📚 كتب"), KeyboardButton("📘 شرح المنهاج")],
-            [KeyboardButton("📄 أوراق عمل")],
-            [KeyboardButton("⬅️ رجوع")]
-        ]
-        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-        await update.message.reply_text("اختر نوع المحتوى:", reply_markup=reply_markup)
+    elif text == "🧮 سابع":
+        await show_keyboard(update, context, "seventh")
+
+    elif text == "📊 ثامن":
+        await show_keyboard(update, context, "eighth")
+
+    elif text == "📈 عاشر":
+        await show_keyboard(update, context, "tenth")
+
+    elif text == "📉 حادي عشر":
+        await show_keyboard(update, context, "eleventh")
 
     elif text == "🧪 قسم الكيمياء":
         await update.message.reply_text("📢 قسم الكيمياء قيد التطوير حالياً.")
 
     elif text == "⬅️ رجوع":
-        await start(update, context)
+        previous = context.user_data.get("last_state", "start")
+        back_map = {
+            "math": "start",
+            "baccalaureate": "math",
+            "ninth": "math",
+            "qualifying": "math",
+            "preparatory": "qualifying",
+            "secondary": "qualifying",
+            "seventh": "preparatory",
+            "eighth": "preparatory",
+            "tenth": "secondary",
+            "eleventh": "secondary"
+        }
+        await show_keyboard(update, context, back_map.get(previous, "start"))
 
     else:
         await update.message.reply_text("يرجى اختيار زر من الكيبورد.")
