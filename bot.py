@@ -1,5 +1,4 @@
 import os
-import requests
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
@@ -13,6 +12,7 @@ from telegram.ext import (
 )
 from contextlib import asynccontextmanager
 
+# إعداد المتغيرات من البيئة
 TOKEN = os.getenv("TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
@@ -30,7 +30,7 @@ async def lifespan(app: FastAPI):
     await telegram_app.stop()
     await telegram_app.shutdown()
 
-# FastAPI app
+# إنشاء تطبيق FastAPI
 app = FastAPI(lifespan=lifespan)
 
 # قاعدة بيانات الملفات (اختياري)
@@ -108,8 +108,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-# استقبال Webhook من Telegram
-@app.post("/")
+# استقبال Webhook من Telegram على /webhook
+@app.post("/webhook")
 async def telegram_webhook(request: Request):
     data = await request.json()
     update = Update.de_json(data, telegram_app.bot)
