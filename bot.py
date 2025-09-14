@@ -8,8 +8,8 @@ from telegram.ext import (
     CommandHandler,
     MessageHandler,
     ContextTypes,
-    Filters,
 )
+from telegram.ext import filters
 from telegram.ext import AIORateLimiter
 from contextlib import asynccontextmanager
 
@@ -119,4 +119,5 @@ async def telegram_webhook(request: Request):
 @app.get("/ping")
 def ping():
     return JSONResponse(content={"message": "pong"}, status_code=200)
+
 
