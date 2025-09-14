@@ -6,14 +6,25 @@ from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 from telegram.ext import AIORateLimiter
 import asyncio
+from contextlib import asynccontextmanager
 
 TOKEN = os.getenv("TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
 file_ids = {}
 
+# Lifespan handler بدل on_event
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # تعيين Webhook عند بدء التشغيل
+    url = f"https://api.telegram.org/bot{TOKEN}/setWebhook"
+    data = {"url": WEBHOOK_URL}
+    response = requests.post(url, data=data)
+    print("🔗 Webhook status:", response.text)
+    yield
+
 # إعداد FastAPI
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 # إنشاء تطبيق Telegram
 telegram_app = Application.builder().token(TOKEN).rate_limiter(AIORateLimiter()).build()
@@ -135,7 +146,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("يرجى اختيار زر من الكيبورد.")
 
-# إعداد المسارات في FastAPI
+# مسار استقبال Webhook من Telegram
 @app.post("/")
 async def telegram_webhook(request: Request):
     data = await request.json()
@@ -143,18 +154,11 @@ async def telegram_webhook(request: Request):
     await telegram_app.process_update(update)
     return JSONResponse(content={"status": "ok"})
 
+# مسار الفحص لـ UptimeRobot
 @app.get("/ping")
 def ping():
     return JSONResponse(content={"message": "pong"}, status_code=200)
 
-# إعداد البوت
+# إضافة المعالجات
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-
-# تعيين Webhook عند التشغيل
-@app.on_event("startup")
-async def on_startup():
-    url = f"https://api.telegram.org/bot{TOKEN}/setWebhook"
-    data = {"url": WEBHOOK_URL}
-    response = requests.post(url, data=data)
-    print("🔗 Webhook status:", response.text)
