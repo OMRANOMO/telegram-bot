@@ -3,15 +3,20 @@ import requests
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
-from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    MessageHandler,
+    ContextTypes,
+    filters,
+)
 from telegram.ext import AIORateLimiter
 from contextlib import asynccontextmanager
 
-# إعداد المتغيرات
 TOKEN = os.getenv("TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
-# إعداد FastAPI مع Lifespan لتعيين Webhook عند التشغيل
+# Lifespan لتعيين Webhook عند التشغيل
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     response = requests.post(
@@ -21,15 +26,16 @@ async def lifespan(app: FastAPI):
     print("🔗 Webhook status:", response.text)
     yield
 
+# FastAPI app
 app = FastAPI(lifespan=lifespan)
 
-# إعداد تطبيق Telegram
+# Telegram bot app
 telegram_app = Application.builder().token(TOKEN).rate_limiter(AIORateLimiter()).build()
 
 # قاعدة بيانات الملفات (اختياري)
 file_ids = {}
 
-# دالة عرض الكيبورد حسب الحالة
+# دالة عرض الكيبورد
 async def show_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE, state: str):
     context.user_data["last_state"] = state
     keyboards = {
@@ -48,7 +54,7 @@ async def show_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE, stat
     keyboard = keyboards.get(state, [["⬅️ رجوع"]])
     await update.message.reply_text("اختر:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
 
-# دالة بدء البوت
+# دالة /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await show_keyboard(update, context, "start")
 
