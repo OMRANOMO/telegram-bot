@@ -1,17 +1,22 @@
 import os
 import requests
-import asyncio
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-import uvicorn
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
+from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
+from telegram.ext import AIORateLimiter
+import asyncio
 
 TOKEN = os.getenv("TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
 file_ids = {}
-app = FastAPI()  # FastAPI instance
+
+# إعداد FastAPI
+app = FastAPI()
+
+# إنشاء تطبيق Telegram
+telegram_app = Application.builder().token(TOKEN).rate_limiter(AIORateLimiter()).build()
 
 # دالة عرض الكيبورد حسب الحالة
 async def show_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE, state: str):
@@ -130,31 +135,26 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("يرجى اختيار زر من الكيبورد.")
 
-def set_webhook():
-    url = f"https://api.telegram.org/bot{TOKEN}/setWebhook"
-    data = {"url": WEBHOOK_URL}
-    response = requests.post(url, data=data)
-    print("🔗 Webhook status:", response.text)
+# إعداد المسارات في FastAPI
+@app.post("/")
+async def telegram_webhook(request: Request):
+    data = await request.json()
+    update = Update.de_json(data, telegram_app.bot)
+    await telegram_app.process_update(update)
+    return JSONResponse(content={"status": "ok"})
 
 @app.get("/ping")
 def ping():
     return JSONResponse(content={"message": "pong"}, status_code=200)
 
-def run_bot():
-    telegram_app = ApplicationBuilder().token(TOKEN).build()
-    telegram_app.add_handler(CommandHandler("start", start))
-    telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+# إعداد البوت
+telegram_app.add_handler(CommandHandler("start", start))
+telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    print("✅ البوت يعمل الآن عبر Webhook...")
-    set_webhook()
-
-    telegram_app.run_webhook(
-        listen="0.0.0.0",
-        port=int(os.environ.get("PORT", 10000)),
-        webhook_url=WEBHOOK_URL
-    )
-
-if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.create_task(asyncio.to_thread(run_bot))
-    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+# تعيين Webhook عند التشغيل
+@app.on_event("startup")
+async def on_startup():
+    url = f"https://api.telegram.org/bot{TOKEN}/setWebhook"
+    data = {"url": WEBHOOK_URL}
+    response = requests.post(url, data=data)
+    print("🔗 Webhook status:", response.text)
