@@ -8,29 +8,30 @@ from telegram.ext import (
     CommandHandler,
     MessageHandler,
     ContextTypes,
+    filters,
+    AIORateLimiter,
 )
-from telegram.ext import filters
-from telegram.ext import AIORateLimiter
 from contextlib import asynccontextmanager
 
 TOKEN = os.getenv("TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
-# Lifespan لتعيين Webhook عند التشغيل
+# إنشاء تطبيق Telegram
+telegram_app = Application.builder().token(TOKEN).rate_limiter(AIORateLimiter()).build()
+
+# Lifespan لتشغيل البوت داخل FastAPI
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    response = requests.post(
-        f"https://api.telegram.org/bot{TOKEN}/setWebhook",
-        data={"url": WEBHOOK_URL}
-    )
-    print("🔗 Webhook status:", response.text)
+    await telegram_app.initialize()
+    await telegram_app.start()
+    await telegram_app.bot.set_webhook(url=WEBHOOK_URL)
+    print("✅ Webhook تم تعيينه بنجاح")
     yield
+    await telegram_app.stop()
+    await telegram_app.shutdown()
 
 # FastAPI app
 app = FastAPI(lifespan=lifespan)
-
-# Telegram bot app
-telegram_app = Application.builder().token(TOKEN).rate_limiter(AIORateLimiter()).build()
 
 # قاعدة بيانات الملفات (اختياري)
 file_ids = {}
@@ -119,5 +120,3 @@ async def telegram_webhook(request: Request):
 @app.get("/ping")
 def ping():
     return JSONResponse(content={"message": "pong"}, status_code=200)
-
-
