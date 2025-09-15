@@ -1,91 +1,116 @@
 import os
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+import requests
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
-from telegram.ext import (
-    Application,
-    CommandHandler,
-    MessageHandler,
-    ContextTypes,
-    filters,
-    AIORateLimiter,
-)
-from contextlib import asynccontextmanager
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
-# إعداد المتغيرات من البيئة
+# تحميل المتغيرات البيئية
 TOKEN = os.getenv("TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
-# إنشاء تطبيق Telegram
-telegram_app = Application.builder().token(TOKEN).rate_limiter(AIORateLimiter()).build()
-
-# Lifespan لتشغيل البوت داخل FastAPI
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    await telegram_app.initialize()
-    await telegram_app.start()
-    await telegram_app.bot.set_webhook(url=WEBHOOK_URL)
-    print("✅ Webhook تم تعيينه بنجاح")
-    yield
-    await telegram_app.stop()
-    await telegram_app.shutdown()
-
-# إنشاء تطبيق FastAPI
-app = FastAPI(lifespan=lifespan)
-
-# قاعدة بيانات الملفات (اختياري)
+# قاموس لحفظ file_id لكل ملف
 file_ids = {}
 
-# دالة عرض الكيبورد
+# دالة عرض الكيبورد حسب الحالة
 async def show_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE, state: str):
     context.user_data["last_state"] = state
-    keyboards = {
-        "start": [["📐 قسم الرياضيات"], ["🧪 قسم الكيمياء"]],
-        "math": [["📘 بكالوريا", "📗 تاسع"], ["📙 تأهيلي"], ["⬅️ رجوع"]],
-        "baccalaureate": [["📚 كتب", "📘 شرح المنهاج"], ["📄 أوراق عمل", "📝 أسئلة دورات"], ["⬅️ رجوع"]],
-        "ninth": [["📚 كتب", "📘 شرح المنهاج"], ["📄 أوراق عمل", "📝 أسئلة دورات"], ["⬅️ رجوع"]],
-        "qualifying": [["📕 إعدادي", "📒 ثانوي"], ["⬅️ رجوع"]],
-        "preparatory": [["🧮 سابع", "📊 ثامن"], ["⬅️ رجوع"]],
-        "secondary": [["📈 عاشر", "📉 حادي عشر"], ["⬅️ رجوع"]],
-        "seventh": [["📚 كتب", "📘 شرح المنهاج"], ["📄 أوراق عمل"], ["⬅️ رجوع"]],
-        "eighth": [["📚 كتب", "📘 شرح المنهاج"], ["📄 أوراق عمل"], ["⬅️ رجوع"]],
-        "tenth": [["📚 كتب", "📘 شرح المنهاج"], ["📄 أوراق عمل"], ["⬅️ رجوع"]],
-        "eleventh": [["📚 كتب", "📘 شرح المنهاج"], ["📄 أوراق عمل"], ["⬅️ رجوع"]],
-    }
-    keyboard = keyboards.get(state, [["⬅️ رجوع"]])
-    await update.message.reply_text("اختر:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
 
-# دالة /start
+    if state == "start":
+        keyboard = [
+            [KeyboardButton("📐 قسم الرياضيات")],
+            [KeyboardButton("🧪 قسم الكيمياء")]
+        ]
+        await update.message.reply_text("اختر القسم:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+
+    elif state == "math":
+        keyboard = [
+            [KeyboardButton("📘 بكالوريا"), KeyboardButton("📗 تاسع")],
+            [KeyboardButton("📙 تأهيلي")],
+            [KeyboardButton("⬅️ رجوع")]
+        ]
+        await update.message.reply_text("اختر المرحلة:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+
+    elif state in ["baccalaureate", "ninth"]:
+        keyboard = [
+            [KeyboardButton("📚 كتب"), KeyboardButton("📘 شرح المنهاج")],
+            [KeyboardButton("📄 أوراق عمل"), KeyboardButton("📝 أسئلة دورات")],
+            [KeyboardButton("⬅️ رجوع")]
+        ]
+        await update.message.reply_text("اختر نوع المحتوى:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+
+    elif state == "qualifying":
+        keyboard = [
+            [KeyboardButton("📕 إعدادي"), KeyboardButton("📒 ثانوي")],
+            [KeyboardButton("⬅️ رجوع")]
+        ]
+        await update.message.reply_text("اختر المستوى:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+
+    elif state == "preparatory":
+        keyboard = [
+            [KeyboardButton("🧮 سابع"), KeyboardButton("📊 ثامن")],
+            [KeyboardButton("⬅️ رجوع")]
+        ]
+        await update.message.reply_text("اختر الصف:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+
+    elif state == "secondary":
+        keyboard = [
+            [KeyboardButton("📈 عاشر"), KeyboardButton("📉 حادي عشر")],
+            [KeyboardButton("⬅️ رجوع")]
+        ]
+        await update.message.reply_text("اختر الصف:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+
+    elif state in ["seventh", "eighth", "tenth", "eleventh"]:
+        keyboard = [
+            [KeyboardButton("📚 كتب"), KeyboardButton("📘 شرح المنهاج")],
+            [KeyboardButton("📄 أوراق عمل")],
+            [KeyboardButton("⬅️ رجوع")]
+        ]
+        await update.message.reply_text("اختر نوع المحتوى:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+
+# دالة بدء البوت
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await show_keyboard(update, context, "start")
 
 # دالة التعامل مع الرسائل
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
+    print(f"📩 Received message: {text}")
+
     if text in file_ids:
         await update.message.reply_document(document=file_ids[text])
+
     elif text == "📐 قسم الرياضيات":
         await show_keyboard(update, context, "math")
+
     elif text == "📘 بكالوريا":
         await show_keyboard(update, context, "baccalaureate")
+
     elif text == "📗 تاسع":
         await show_keyboard(update, context, "ninth")
-    elif text == "📙 تأهيلي":
+
+    elif text == "📙 انتقالي":
         await show_keyboard(update, context, "qualifying")
+
     elif text == "📕 إعدادي":
         await show_keyboard(update, context, "preparatory")
+
     elif text == "📒 ثانوي":
         await show_keyboard(update, context, "secondary")
+
     elif text == "🧮 سابع":
         await show_keyboard(update, context, "seventh")
+
     elif text == "📊 ثامن":
         await show_keyboard(update, context, "eighth")
+
     elif text == "📈 عاشر":
         await show_keyboard(update, context, "tenth")
+
     elif text == "📉 حادي عشر":
         await show_keyboard(update, context, "eleventh")
+
     elif text == "🧪 قسم الكيمياء":
         await update.message.reply_text("📢 قسم الكيمياء قيد التطوير حالياً.")
+
     elif text == "⬅️ رجوع":
         previous = context.user_data.get("last_state", "start")
         back_map = {
@@ -101,22 +126,32 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "eleventh": "secondary"
         }
         await show_keyboard(update, context, back_map.get(previous, "start"))
+
     else:
         await update.message.reply_text("يرجى اختيار زر من الكيبورد.")
 
-# إضافة المعالجات
-telegram_app.add_handler(CommandHandler("start", start))
-telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+# دالة تسجيل Webhook لدى Telegram
+def set_webhook():
+    url = f"https://api.telegram.org/bot{TOKEN}/setWebhook"
+    data = {"url": WEBHOOK_URL}
+    response = requests.post(url, data=data)
+    print("🔗 Webhook status:", response.text)
 
-# استقبال Webhook من Telegram على المسار /
-@app.post("/")
-async def telegram_webhook(request: Request):
-    data = await request.json()
-    update = Update.de_json(data, telegram_app.bot)
-    await telegram_app.process_update(update)
-    return JSONResponse(content={"status": "ok"})
+# دالة تشغيل البوت
+def main():
+    app = ApplicationBuilder().token(TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-# مسار الفحص لـ UptimeRobot
-@app.get("/ping")
-def ping():
-    return JSONResponse(content={"message": "pong"}, status_code=200)
+    print("✅ البوت يعمل الآن عبر Webhook...")
+    set_webhook()
+
+    app.run_webhook(
+        listen="0.0.0.0",
+        port=int(os.environ.get("PORT", 10000)),
+        webhook_url=WEBHOOK_URL
+    )
+
+# نقطة البداية
+if __name__ == "__main__":
+    main()
