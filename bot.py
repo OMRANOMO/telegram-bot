@@ -24,7 +24,7 @@ async def show_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE, stat
     elif state == "math":
         keyboard = [
             [KeyboardButton("📘 بكالوريا"), KeyboardButton("📗 تاسع")],
-            [KeyboardButton("📙 تأهيلي")],
+            [KeyboardButton("📙 انتقالي")],
             [KeyboardButton("⬅️ رجوع")]
         ]
         await update.message.reply_text("اختر المرحلة:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
@@ -155,3 +155,4 @@ def main():
 # نقطة البداية
 if __name__ == "__main__":
     main()
+
