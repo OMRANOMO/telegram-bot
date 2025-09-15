@@ -1,0 +1,13 @@
+name: Keep Render Bot Awake
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'  # كل 15 دقيقة
+  workflow_dispatch:        # يسمح بتشغيلها يدويًا أيضًا
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send request to Render bot
+        run: curl -s https://telegram-bot-1-npn2.onrender.com
