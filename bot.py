@@ -66,6 +66,56 @@ async def show_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE, stat
         ]
         await update.message.reply_text("اختر نوع المحتوى:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
 
+    # التعديلات الخاصة بقسم التاسع - عرض خيار جبر أو هندسة
+    elif state == "ninth_options":
+        keyboard = [
+            [KeyboardButton("جبر"), KeyboardButton("هندسة")],
+            [KeyboardButton("⬅️ رجوع")]
+        ]
+        await update.message.reply_text("اختر التخصص:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+
+    # عرض وحدات الجبر (6 وحدات)
+    elif state == "algebra_units":
+        keyboard = [
+            [KeyboardButton("الوحدة 1"), KeyboardButton("الوحدة 2")],
+            [KeyboardButton("الوحدة 3"), KeyboardButton("الوحدة 4")],
+            [KeyboardButton("الوحدة 5"), KeyboardButton("الوحدة 6")],
+            [KeyboardButton("⬅️ رجوع")]
+        ]
+        await update.message.reply_text("اختر الوحدة من الجبر:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+
+    # عرض وحدات الهندسة (4 وحدات)
+    elif state == "geometry_units":
+        keyboard = [
+            [KeyboardButton("الوحدة 1"), KeyboardButton("الوحدة 2")],
+            [KeyboardButton("الوحدة 3"), KeyboardButton("الوحدة 4")],
+            [KeyboardButton("⬅️ رجوع")]
+        ]
+        await update.message.reply_text("اختر الوحدة من الهندسة:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+
+    # تفاصيل الوحدة الأولى من الجبر (4 مواضيع)
+    elif state == "algebra_unit1":
+        keyboard = [
+            [KeyboardButton("طبيعة الأعداد")],
+            [KeyboardButton("القاسم المشترك الأكبر GCD")],
+            [KeyboardButton("الكسور المختزلة")],
+            [KeyboardButton("الجذور التربيعية")],
+            [KeyboardButton("⬅️ رجوع")]
+        ]
+        await update.message.reply_text("وحدة جبر 1 - اختر الموضوع:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+
+    # تفاصيل الوحدة الأولى من الهندسة (5 مواضيع)
+    elif state == "geometry_unit1":
+        keyboard = [
+            [KeyboardButton("التناسب")],
+            [KeyboardButton("النسب المثلثية النمط الأول")],
+            [KeyboardButton("النسب المثلثية النمط الثاني")],
+            [KeyboardButton("النسب المثلثية النمط الثالث")],
+            [KeyboardButton("النسب المثلثية النمط الرابع")],
+            [KeyboardButton("⬅️ رجوع")]
+        ]
+        await update.message.reply_text("وحدة هندسة 1 - اختر الموضوع:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+
 # دالة بدء البوت
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await show_keyboard(update, context, "start")
@@ -85,7 +135,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await show_keyboard(update, context, "baccalaureate")
 
     elif text == "📗 تاسع":
-        await show_keyboard(update, context, "ninth")
+        # عند اختيار تاسع، ننتقل إلى خيارات داخله (جبر/هندسة)
+        await show_keyboard(update, context, "ninth_options")
 
     elif text == "📙 انتقالي":
         await show_keyboard(update, context, "qualifying")
@@ -111,6 +162,36 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif text == "🧪 قسم الكيمياء":
         await update.message.reply_text("📢 قسم الكيمياء قيد التطوير حالياً.")
 
+    # معالجة اختيارات قسم التاسع: جبر أو هندسة
+    elif text == "جبر":
+        await show_keyboard(update, context, "algebra_units")
+
+    elif text == "هندسة":
+        await show_keyboard(update, context, "geometry_units")
+
+    # عند اختيار وحدة من الجبر
+    elif text.startswith("الوحدة") and context.user_data.get("last_state") == "algebra_units":
+        # مثال: "الوحدة 1" => نعرض تفاصيل الوحدة 1
+        if text.strip() == "الوحدة 1":
+            await show_keyboard(update, context, "algebra_unit1")
+        else:
+            await update.message.reply_text("المحتوى لهذه الوحدة سيُضاف لاحقًا.")
+
+    # عند اختيار وحدة من الهندسة
+    elif text.startswith("الوحدة") and context.user_data.get("last_state") == "geometry_units":
+        if text.strip() == "الوحدة 1":
+            await show_keyboard(update, context, "geometry_unit1")
+        else:
+            await update.message.reply_text("المحتوى لهذه الوحدة سيُضاف لاحقًا.")
+
+    # مواضيع الوحدة الأولى من الجبر
+    elif text in ["طبيعة الأعداد", "القاسم المشترك الأكبر GCD", "الكسور المختزلة", "الجذور التربيعية"]:
+        await update.message.reply_text(f"لقد اخترت الموضوع: {text}.\nالمحتوى قيد الإضافة.")
+
+    # مواضيع الوحدة الأولى من الهندسة
+    elif text in ["التناسب", "النسب المثلثية النمط الأول", "النسب المثلثية النمط الثاني", "النسب المثلثية النمط الثالث", "النسب المثلثية النمط الرابع"]:
+        await update.message.reply_text(f"لقد اخترت الموضوع: {text}.\nالمحتوى قيد الإضافة.")
+
     elif text == "⬅️ رجوع":
         previous = context.user_data.get("last_state", "start")
         back_map = {
@@ -123,7 +204,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "seventh": "preparatory",
             "eighth": "preparatory",
             "tenth": "secondary",
-            "eleventh": "secondary"
+            "eleventh": "secondary",
+            "ninth_options": "math",
+            "algebra_units": "ninth_options",
+            "geometry_units": "ninth_options",
+            "algebra_unit1": "algebra_units",
+            "geometry_unit1": "geometry_units"
         }
         await show_keyboard(update, context, back_map.get(previous, "start"))
 
@@ -155,4 +241,3 @@ def main():
 # نقطة البداية
 if __name__ == "__main__":
     main()
-
