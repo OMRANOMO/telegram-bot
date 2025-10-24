@@ -66,13 +66,22 @@ async def show_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE, stat
         ]
         await update.message.reply_text("اختر نوع المحتوى:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
 
-    # التعديلات الخاصة بقسم التاسع - عرض خيار جبر أو هندسة
-    elif state == "ninth_options":
+    # قائمة أنواع المحتوى لصف تاسع (تظهر بعد اختيار 📗 تاسع)
+    elif state == "ninth_content":
+        keyboard = [
+            [KeyboardButton("📚 كتب"), KeyboardButton("📘 شرح المنهاج")],
+            [KeyboardButton("📄 أوراق عمل"), KeyboardButton("📝 أسئلة دورات")],
+            [KeyboardButton("⬅️ رجوع")]
+        ]
+        await update.message.reply_text("اختر نوع المحتوى للصف التاسع:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+
+    # بعد اختيار شرح المنهاج لصف تاسع نعرض التخصص (جبر/هندسة)
+    elif state == "ninth_specialization":
         keyboard = [
             [KeyboardButton("جبر"), KeyboardButton("هندسة")],
             [KeyboardButton("⬅️ رجوع")]
         ]
-        await update.message.reply_text("اختر التخصص:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+        await update.message.reply_text("اختر التخصص لشرح المنهاج:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
 
     # عرض وحدات الجبر (6 وحدات)
     elif state == "algebra_units":
@@ -135,8 +144,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await show_keyboard(update, context, "baccalaureate")
 
     elif text == "📗 تاسع":
-        # عند اختيار تاسع، ننتقل إلى خيارات داخله (جبر/هندسة)
-        await show_keyboard(update, context, "ninth_options")
+        await show_keyboard(update, context, "ninth_content")
 
     elif text == "📙 انتقالي":
         await show_keyboard(update, context, "qualifying")
@@ -162,16 +170,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif text == "🧪 قسم الكيمياء":
         await update.message.reply_text("📢 قسم الكيمياء قيد التطوير حالياً.")
 
-    # معالجة اختيارات قسم التاسع: جبر أو هندسة
-    elif text == "جبر":
-        await show_keyboard(update, context, "algebra_units")
+    # خيارات المحتوى لصف التاسع
+    elif context.user_data.get("last_state") == "ninth_content" and text in ["📚 كتب", "📘 شرح المنهاج", "📄 أوراق عمل", "📝 أسئلة دورات"]:
+        if text == "📘 شرح المنهاج":
+            await show_keyboard(update, context, "ninth_specialization")
+        else:
+            await update.message.reply_text(f"لقد اخترت: {text}.\nالمحتوى سيُضاف لاحقًا.")
 
-    elif text == "هندسة":
-        await show_keyboard(update, context, "geometry_units")
+    # معالجة اختيارات التخصص بعد شرح المنهاج
+    elif context.user_data.get("last_state") == "ninth_specialization" and text in ["جبر", "هندسة"]:
+        if text == "جبر":
+            await show_keyboard(update, context, "algebra_units")
+        else:
+            await show_keyboard(update, context, "geometry_units")
 
     # عند اختيار وحدة من الجبر
     elif text.startswith("الوحدة") and context.user_data.get("last_state") == "algebra_units":
-        # مثال: "الوحدة 1" => نعرض تفاصيل الوحدة 1
         if text.strip() == "الوحدة 1":
             await show_keyboard(update, context, "algebra_unit1")
         else:
@@ -198,18 +212,19 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "math": "start",
             "baccalaureate": "math",
             "ninth": "math",
+            "ninth_content": "math",
+            "ninth_specialization": "ninth_content",
+            "algebra_units": "ninth_specialization",
+            "geometry_units": "ninth_specialization",
+            "algebra_unit1": "algebra_units",
+            "geometry_unit1": "geometry_units",
             "qualifying": "math",
             "preparatory": "qualifying",
             "secondary": "qualifying",
             "seventh": "preparatory",
             "eighth": "preparatory",
             "tenth": "secondary",
-            "eleventh": "secondary",
-            "ninth_options": "math",
-            "algebra_units": "ninth_options",
-            "geometry_units": "ninth_options",
-            "algebra_unit1": "algebra_units",
-            "geometry_unit1": "geometry_units"
+            "eleventh": "secondary"
         }
         await show_keyboard(update, context, back_map.get(previous, "start"))
 
