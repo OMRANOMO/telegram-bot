@@ -1,4 +1,5 @@
 import os
+import json
 import requests
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
@@ -9,6 +10,52 @@ WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
 # قاموس لحفظ file_id لكل ملف
 file_ids = {}
+
+# خريطة الفيديوهات المخزنة في القناة/المجموعة
+VIDEOS_MAP_PATH = "videos_map.json"
+videos_map = {}
+
+# دوال مساعدة لقراءة وحفظ خريطة الفيديوهات
+def load_videos_map():
+    global videos_map
+    try:
+        if os.path.exists(VIDEOS_MAP_PATH):
+            with open(VIDEOS_MAP_PATH, "r", encoding="utf-8") as f:
+                videos_map = json.load(f)
+        else:
+            videos_map = {}
+    except Exception:
+        videos_map = {}
+
+def save_videos_map():
+    try:
+        with open(VIDEOS_MAP_PATH, "w", encoding="utf-8") as f:
+            json.dump(videos_map, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+# دالة لنسخ رسالة الفيديو من القناة/المجموعة للمستخدم
+async def send_from_storage(update: Update, context: ContextTypes.DEFAULT_TYPE, key: str):
+    entry = videos_map.get(key)
+    if not entry:
+        await update.message.reply_text("عذرًا، لم أجد هذا الفيديو في المخزن.")
+        return
+    from_chat_id = entry.get("chat_id")
+    message_id = entry.get("message_id")
+    try:
+        await context.bot.copy_message(
+            chat_id=update.effective_chat.id,
+            from_chat_id=from_chat_id,
+            message_id=message_id
+        )
+    except Exception as e:
+        await update.message.reply_text("حدث خطأ أثناء استدعاء الفيديو. تأكد أن البوت مشرف في القناة/المجموعة وأن المعرفات صحيحة.")
+
+# هاندلر مؤقت للحصول على chat_id و message_id (استعمله داخل القناة أو المجموعة بالرد على رسالة الفيديو)
+async def get_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    message_id = update.message.message_id
+    await update.message.reply_text(f"chat_id: {chat_id}\nmessage_id: {message_id}")
 
 # دالة عرض الكيبورد حسب الحالة
 async def show_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE, state: str):
@@ -134,79 +181,104 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     print(f"📩 Received message: {text}")
 
+    # إرسال ملف محفوظ عبر file_ids إن وجد
     if text in file_ids:
         await update.message.reply_document(document=file_ids[text])
+        return
 
-    elif text == "📐 قسم الرياضيات":
+    # إرسال مقاطع مخزنة باستخدام خريطة الفيديوهات (copy_message من القناة/المجموعة)
+    if text in videos_map:
+        await send_from_storage(update, context, key=text)
+        return
+
+    if text == "📐 قسم الرياضيات":
         await show_keyboard(update, context, "math")
+        return
 
-    elif text == "📘 بكالوريا":
+    if text == "📘 بكالوريا":
         await show_keyboard(update, context, "baccalaureate")
+        return
 
-    elif text == "📗 تاسع":
+    if text == "📗 تاسع":
         await show_keyboard(update, context, "ninth_content")
+        return
 
-    elif text == "📙 انتقالي":
+    if text == "📙 انتقالي":
         await show_keyboard(update, context, "qualifying")
+        return
 
-    elif text == "📕 إعدادي":
+    if text == "📕 إعدادي":
         await show_keyboard(update, context, "preparatory")
+        return
 
-    elif text == "📒 ثانوي":
+    if text == "📒 ثانوي":
         await show_keyboard(update, context, "secondary")
+        return
 
-    elif text == "🧮 سابع":
+    if text == "🧮 سابع":
         await show_keyboard(update, context, "seventh")
+        return
 
-    elif text == "📊 ثامن":
+    if text == "📊 ثامن":
         await show_keyboard(update, context, "eighth")
+        return
 
-    elif text == "📈 عاشر":
+    if text == "📈 عاشر":
         await show_keyboard(update, context, "tenth")
+        return
 
-    elif text == "📉 حادي عشر":
+    if text == "📉 حادي عشر":
         await show_keyboard(update, context, "eleventh")
+        return
 
-    elif text == "🧪 قسم الكيمياء":
+    if text == "🧪 قسم الكيمياء":
         await update.message.reply_text("📢 قسم الكيمياء قيد التطوير حالياً.")
+        return
 
     # خيارات المحتوى لصف التاسع
-    elif context.user_data.get("last_state") == "ninth_content" and text in ["📚 كتب", "📘 شرح المنهاج", "📄 أوراق عمل", "📝 أسئلة دورات"]:
+    if context.user_data.get("last_state") == "ninth_content" and text in ["📚 كتب", "📘 شرح المنهاج", "📄 أوراق عمل", "📝 أسئلة دورات"]:
         if text == "📘 شرح المنهاج":
             await show_keyboard(update, context, "ninth_specialization")
         else:
             await update.message.reply_text(f"لقد اخترت: {text}.\nالمحتوى سيُضاف لاحقًا.")
+        return
 
     # معالجة اختيارات التخصص بعد شرح المنهاج
-    elif context.user_data.get("last_state") == "ninth_specialization" and text in ["جبر", "هندسة"]:
+    if context.user_data.get("last_state") == "ninth_specialization" and text in ["جبر", "هندسة"]:
         if text == "جبر":
             await show_keyboard(update, context, "algebra_units")
         else:
             await show_keyboard(update, context, "geometry_units")
+        return
 
     # عند اختيار وحدة من الجبر
-    elif text.startswith("الوحدة") and context.user_data.get("last_state") == "algebra_units":
+    if text.startswith("الوحدة") and context.user_data.get("last_state") == "algebra_units":
         if text.strip() == "الوحدة 1":
             await show_keyboard(update, context, "algebra_unit1")
         else:
             await update.message.reply_text("المحتوى لهذه الوحدة سيُضاف لاحقًا.")
+        return
 
     # عند اختيار وحدة من الهندسة
-    elif text.startswith("الوحدة") and context.user_data.get("last_state") == "geometry_units":
+    if text.startswith("الوحدة") and context.user_data.get("last_state") == "geometry_units":
         if text.strip() == "الوحدة 1":
             await show_keyboard(update, context, "geometry_unit1")
         else:
             await update.message.reply_text("المحتوى لهذه الوحدة سيُضاف لاحقًا.")
+        return
 
     # مواضيع الوحدة الأولى من الجبر
-    elif text in ["طبيعة الأعداد", "القاسم المشترك الأكبر GCD", "الكسور المختزلة", "الجذور التربيعية"]:
+    if text in ["طبيعة الأعداد", "القاسم المشترك الأكبر GCD", "الكسور المختزلة", "الجذور التربيعية"]:
+        # إن أردت ربط مفتاح الموضوع بفيديو في الخريطة، ضع اسم المفتاح في videos_map واستخدمه أعلاه
         await update.message.reply_text(f"لقد اخترت الموضوع: {text}.\nالمحتوى قيد الإضافة.")
+        return
 
     # مواضيع الوحدة الأولى من الهندسة
-    elif text in ["التناسب", "النسب المثلثية النمط الأول", "النسب المثلثية النمط الثاني", "النسب المثلثية النمط الثالث", "النسب المثلثية النمط الرابع"]:
+    if text in ["التناسب", "النسب المثلثية النمط الأول", "النسب المثلثية النمط الثاني", "النسب المثلثية النمط الثالث", "النسب المثلثية النمط الرابع"]:
         await update.message.reply_text(f"لقد اخترت الموضوع: {text}.\nالمحتوى قيد الإضافة.")
+        return
 
-    elif text == "⬅️ رجوع":
+    if text == "⬅️ رجوع":
         previous = context.user_data.get("last_state", "start")
         back_map = {
             "math": "start",
@@ -227,9 +299,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "eleventh": "secondary"
         }
         await show_keyboard(update, context, back_map.get(previous, "start"))
+        return
 
-    else:
-        await update.message.reply_text("يرجى اختيار زر من الكيبورد.")
+    await update.message.reply_text("يرجى اختيار زر من الكيبورد.")
 
 # دالة تسجيل Webhook لدى Telegram
 def set_webhook():
@@ -240,7 +312,13 @@ def set_webhook():
 
 # دالة تشغيل البوت
 def main():
+    load_videos_map()
+
     app = ApplicationBuilder().token(TOKEN).build()
+
+    # هاندلر مؤقت للحصول على chat_id و message_id داخل القناة/المجموعة
+    app.add_handler(CommandHandler("getid", get_id))
+
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
