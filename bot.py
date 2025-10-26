@@ -8,10 +8,10 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 TOKEN = os.getenv("TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
-# قاموس لحفظ file_id لكل ملف
+# قاموس لحفظ file_id لكل ملف (إن استخدمت)
 file_ids = {}
 
-# خريطة الفيديوهات المخزنة في القناة/المجموعة
+# مسار ملف خريطة الفيديوهات
 VIDEOS_MAP_PATH = "videos_map.json"
 videos_map = {}
 
@@ -34,6 +34,19 @@ def save_videos_map():
     except Exception:
         pass
 
+# هاندلر /getid المعدل: يلتقط المعرفات من الرسالة التي تم الرد عليها
+async def get_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    reply = update.message.reply_to_message
+    if not reply:
+        await update.message.reply_text("📌 أرسل الأمر كرد على رسالة الفيديو للحصول على chat_id و message_id.")
+        return
+
+    # استخدم reply.chat.id و reply.message_id للحصول على القيم الصحيحة للمصدر
+    chat_id = reply.chat.id
+    message_id = reply.message_id
+
+    await update.message.reply_text(f"✅ المعرفات:\nchat_id: {chat_id}\nmessage_id: {message_id}")
+
 # دالة لنسخ رسالة الفيديو من القناة/المجموعة للمستخدم
 async def send_from_storage(update: Update, context: ContextTypes.DEFAULT_TYPE, key: str):
     entry = videos_map.get(key)
@@ -48,14 +61,8 @@ async def send_from_storage(update: Update, context: ContextTypes.DEFAULT_TYPE, 
             from_chat_id=from_chat_id,
             message_id=message_id
         )
-    except Exception as e:
+    except Exception:
         await update.message.reply_text("حدث خطأ أثناء استدعاء الفيديو. تأكد أن البوت مشرف في القناة/المجموعة وأن المعرفات صحيحة.")
-
-# هاندلر مؤقت للحصول على chat_id و message_id (استعمله داخل القناة أو المجموعة بالرد على رسالة الفيديو)
-async def get_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
-    message_id = update.message.message_id
-    await update.message.reply_text(f"chat_id: {chat_id}\nmessage_id: {message_id}")
 
 # دالة عرض الكيبورد حسب الحالة
 async def show_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE, state: str):
@@ -113,7 +120,6 @@ async def show_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE, stat
         ]
         await update.message.reply_text("اختر نوع المحتوى:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
 
-    # قائمة أنواع المحتوى لصف تاسع (تظهر بعد اختيار 📗 تاسع)
     elif state == "ninth_content":
         keyboard = [
             [KeyboardButton("📚 كتب"), KeyboardButton("📘 شرح المنهاج")],
@@ -122,7 +128,6 @@ async def show_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE, stat
         ]
         await update.message.reply_text("اختر نوع المحتوى للصف التاسع:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
 
-    # بعد اختيار شرح المنهاج لصف تاسع نعرض التخصص (جبر/هندسة)
     elif state == "ninth_specialization":
         keyboard = [
             [KeyboardButton("جبر"), KeyboardButton("هندسة")],
@@ -130,7 +135,6 @@ async def show_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE, stat
         ]
         await update.message.reply_text("اختر التخصص لشرح المنهاج:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
 
-    # عرض وحدات الجبر (6 وحدات)
     elif state == "algebra_units":
         keyboard = [
             [KeyboardButton("الوحدة 1"), KeyboardButton("الوحدة 2")],
@@ -140,7 +144,6 @@ async def show_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE, stat
         ]
         await update.message.reply_text("اختر الوحدة من الجبر:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
 
-    # عرض وحدات الهندسة (4 وحدات)
     elif state == "geometry_units":
         keyboard = [
             [KeyboardButton("الوحدة 1"), KeyboardButton("الوحدة 2")],
@@ -149,7 +152,6 @@ async def show_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE, stat
         ]
         await update.message.reply_text("اختر الوحدة من الهندسة:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
 
-    # تفاصيل الوحدة الأولى من الجبر (4 مواضيع)
     elif state == "algebra_unit1":
         keyboard = [
             [KeyboardButton("طبيعة الأعداد")],
@@ -160,7 +162,6 @@ async def show_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE, stat
         ]
         await update.message.reply_text("وحدة جبر 1 - اختر الموضوع:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
 
-    # تفاصيل الوحدة الأولى من الهندسة (5 مواضيع)
     elif state == "geometry_unit1":
         keyboard = [
             [KeyboardButton("التناسب")],
@@ -269,7 +270,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # مواضيع الوحدة الأولى من الجبر
     if text in ["طبيعة الأعداد", "القاسم المشترك الأكبر GCD", "الكسور المختزلة", "الجذور التربيعية"]:
-        # إن أردت ربط مفتاح الموضوع بفيديو في الخريطة، ضع اسم المفتاح في videos_map واستخدمه أعلاه
         await update.message.reply_text(f"لقد اخترت الموضوع: {text}.\nالمحتوى قيد الإضافة.")
         return
 
